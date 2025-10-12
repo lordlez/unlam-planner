@@ -22,6 +22,6 @@ export interface UserProgress {
 export const estados = {
     NO_CURSADA: 'No Cursada',
     CURSANDO: 'Cursando',
-    APROBADA_CURSADA: 'Aprobada (Cursada)',
-    APROBADA_FINAL: 'Aprobada (Final)'
+    APROBADA_CURSADA: 'Aprobada (Final)',
+    APROBADA_FINAL: 'Aprobada (Promoción)',
 } as const;

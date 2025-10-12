@@ -32,12 +32,19 @@ const AppView: React.FC<AppViewProps> = ({ user, carrera, onLogout, onReset, use
         const totalMaterias = carrera.materias.length;
         let aprobadas = 0;
         let cursando = 0;
+        
         Object.values(userProgress).forEach(estado => {
-            if (estado === estados.APROBADA_FINAL) aprobadas++;
-            if (estado === estados.CURSANDO) cursando++;
+            if (estado === estados.APROBADA_FINAL || estado === estados.APROBADA_CURSADA) {
+                aprobadas++;
+            }
+            if (estado === estados.CURSANDO) {
+                cursando++;
+            }
         });
+
         const restantes = totalMaterias - aprobadas;
         const avance = totalMaterias > 0 ? Math.round((aprobadas / totalMaterias) * 100) : 0;
+        
         return { aprobadas, cursando, restantes, avance };
     }, [userProgress, carrera.materias.length]);
 
@@ -48,11 +55,22 @@ const AppView: React.FC<AppViewProps> = ({ user, carrera, onLogout, onReset, use
         }, {} as { [key: number]: Materia[] });
     }, [carrera.materias]);
 
-    const checkCorrelatividades = (materia: Materia) => {
+    const checkCorrelatividades = (materia: Materia): boolean => {
         if (!materia.correlativas || materia.correlativas.length === 0) return true;
+        
         return materia.correlativas.every(idCorrelativa => {
             const estadoCorrelativa = userProgress[idCorrelativa] || estados.NO_CURSADA;
             return estadoCorrelativa === estados.APROBADA_CURSADA || estadoCorrelativa === estados.APROBADA_FINAL;
+        });
+    };
+
+    const checkPuedePromocionar = (materia: Materia): boolean => {
+        if (!materia.correlativas || materia.correlativas.length === 0) {
+            return true;
+        }
+        return materia.correlativas.every(idCorrelativa => {
+            const estadoCorrelativa = userProgress[idCorrelativa] || estados.NO_CURSADA;
+            return estadoCorrelativa !== estados.APROBADA_CURSADA;
         });
     };
 
@@ -89,6 +107,7 @@ const AppView: React.FC<AppViewProps> = ({ user, carrera, onLogout, onReset, use
                                         materia={materia}
                                         estado={userProgress[materia.id] || estados.NO_CURSADA}
                                         puedeCursar={checkCorrelatividades(materia)}
+                                        puedePromocionar={checkPuedePromocionar(materia)}
                                         onStatusChange={onStatusChange}
                                     />
                                 ))}
@@ -98,7 +117,6 @@ const AppView: React.FC<AppViewProps> = ({ user, carrera, onLogout, onReset, use
                 </section>
             </main>
 
-            {/* 2. Reemplazamos nuestro antiguo modal con el Diálogo de MUI */}
             <Dialog
                 open={isResetModalOpen}
                 onClose={() => setIsResetModalOpen(false)}
