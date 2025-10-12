@@ -1,35 +1,43 @@
-// src/views/AppView.tsx
-
-import React, { useMemo } from 'react';
-import type { User, UserProgress, Carrera, Materia } from '../types';
-// CORRECCIÓN AQUÍ: Importamos 'estados' desde su nueva ubicación
+import React, { useMemo, useState } from 'react';
+import type { User, UserProgress, Carrera, Materia } from '../types/index.ts';
 import { estados } from '../types';
-import StatCard from '../components/StatCard';
-// Y aquí, la importación de MateriaCard ya no incluye 'estados'
-import MateriaCard from '../components/MateriaCard';
+import StatCard from '../components/StatCard.tsx';
+import MateriaCard from '../components/MateriaCard.tsx';
+
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
 
 interface AppViewProps {
     user: User;
     carrera: Carrera;
     onLogout: () => void;
+    onReset: () => void;
     userProgress: UserProgress;
     onStatusChange: (materiaId: string, newState: string) => void;
 }
 
-const AppView: React.FC<AppViewProps> = ({ user, carrera, onLogout, userProgress, onStatusChange }) => {
+const AppView: React.FC<AppViewProps> = ({ user, carrera, onLogout, onReset, userProgress, onStatusChange }) => {
+    const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+    
+    const handleConfirmReset = () => {
+        onReset();
+        setIsResetModalOpen(false);
+    };
+
     const stats = useMemo(() => {
         const totalMaterias = carrera.materias.length;
         let aprobadas = 0;
         let cursando = 0;
-        
         Object.values(userProgress).forEach(estado => {
             if (estado === estados.APROBADA_FINAL) aprobadas++;
             if (estado === estados.CURSANDO) cursando++;
         });
-
         const restantes = totalMaterias - aprobadas;
         const avance = totalMaterias > 0 ? Math.round((aprobadas / totalMaterias) * 100) : 0;
-        
         return { aprobadas, cursando, restantes, avance };
     }, [userProgress, carrera.materias.length]);
 
@@ -54,13 +62,15 @@ const AppView: React.FC<AppViewProps> = ({ user, carrera, onLogout, userProgress
                 <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
                         <span className="font-bold text-xl text-indigo-600">UNLaM Planner</span>
-                        <div className="flex items-center">
-                            <span className="text-sm text-gray-600 mr-4 hidden sm:block">{user.email}</span>
+                        <div className="flex items-center space-x-2">
+                            <span className="text-sm text-gray-600 mr-2 hidden sm:block">{user.email}</span>
+                            <button onClick={() => setIsResetModalOpen(true)} className="px-3 py-2 text-sm font-medium text-red-600 bg-red-100 rounded-md hover:bg-red-200">Reiniciar</button>
                             <button onClick={onLogout} className="px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">Salir</button>
                         </div>
                     </div>
                 </nav>
             </header>
+            
             <main className="container mx-auto p-4 sm:p-6 lg:p-8">
                 <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                     <StatCard title="Aprobadas" value={stats.aprobadas} colorClass="text-green-600" />
@@ -87,8 +97,32 @@ const AppView: React.FC<AppViewProps> = ({ user, carrera, onLogout, userProgress
                     ))}
                 </section>
             </main>
+
+            {/* 2. Reemplazamos nuestro antiguo modal con el Diálogo de MUI */}
+            <Dialog
+                open={isResetModalOpen}
+                onClose={() => setIsResetModalOpen(false)}
+                aria-labelledby="alert-dialog-title"
+                aria-describedby="alert-dialog-description"
+            >
+                <DialogTitle id="alert-dialog-title">
+                    {"Confirmar Reinicio"}
+                </DialogTitle>
+                <DialogContent>
+                    <DialogContentText id="alert-dialog-description">
+                        ¿Estás seguro de que quieres reiniciar todo tu progreso? Esta acción no se puede deshacer.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setIsResetModalOpen(false)}>Cancelar</Button>
+                    <Button onClick={handleConfirmReset} autoFocus color="error">
+                        Confirmar
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </div>
     );
 };
 
 export default AppView;
+

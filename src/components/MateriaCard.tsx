@@ -1,7 +1,4 @@
-// src/components/MateriaCard.tsx
-
 import React from 'react';
-// La clave está en esta línea: importamos tipos y valores por separado.
 import type { Materia } from '../types';
 import { estados } from '../types';
 

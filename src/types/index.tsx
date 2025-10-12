@@ -1,6 +1,3 @@
-// src/types/index.ts
-
-// La corrección está aquí, al añadir "type" a la importación desde Firebase
 import type { User as FirebaseUser } from 'firebase/auth';
 
 export type User = FirebaseUser;

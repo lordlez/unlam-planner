@@ -1,5 +1,3 @@
-// src/views/AuthView.tsx
-
 import React, { useState } from 'react';
 
 interface AuthViewProps {
