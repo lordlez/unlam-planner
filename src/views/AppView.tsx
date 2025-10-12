@@ -3,7 +3,6 @@ import type { User, UserProgress, Carrera, Materia } from '../types/index.ts';
 import { estados } from '../types';
 import StatCard from '../components/StatCard.tsx';
 import MateriaCard from '../components/MateriaCard.tsx';
-
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -11,8 +10,10 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 
+
 interface AppViewProps {
     user: User;
+    userName: string; 
     carrera: Carrera;
     onLogout: () => void;
     onReset: () => void;
@@ -20,7 +21,7 @@ interface AppViewProps {
     onStatusChange: (materiaId: string, newState: string) => void;
 }
 
-const AppView: React.FC<AppViewProps> = ({ user, carrera, onLogout, onReset, userProgress, onStatusChange }) => {
+const AppView: React.FC<AppViewProps> = ({ user, userName, carrera, onLogout, onReset, userProgress, onStatusChange }) => {
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     
     const handleConfirmReset = () => {
@@ -66,20 +67,22 @@ const AppView: React.FC<AppViewProps> = ({ user, carrera, onLogout, onReset, use
 
     const checkPuedePromocionar = (materia: Materia): boolean => {
         if (!materia.correlativas || materia.correlativas.length === 0) {
-            return true;
+            return true; 
         }
         return materia.correlativas.every(idCorrelativa => {
             const estadoCorrelativa = userProgress[idCorrelativa] || estados.NO_CURSADA;
-            return estadoCorrelativa !== estados.APROBADA_CURSADA;
+            return estadoCorrelativa !== estados.APROBADA_CURSADA; 
         });
     };
-
+    
     return (
         <div className="bg-gray-100 min-h-screen">
             <header className="bg-white shadow-md sticky top-0 z-10">
                 <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
-                        <span className="font-bold text-xl text-indigo-600">UNLaM Planner</span>
+                        <span className="font-bold text-lg sm:text-xl text-indigo-600 truncate">
+                            {userName ? `¡Hola, ${userName}!` : 'UNLaM Planner'}
+                        </span>
                         <div className="flex items-center space-x-2">
                             <span className="text-sm text-gray-600 mr-2 hidden sm:block">{user.email}</span>
                             <button onClick={() => setIsResetModalOpen(true)} className="px-3 py-2 text-sm font-medium text-red-600 bg-red-100 rounded-md hover:bg-red-200">Reiniciar</button>
@@ -90,7 +93,7 @@ const AppView: React.FC<AppViewProps> = ({ user, carrera, onLogout, onReset, use
             </header>
             
             <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-                <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+               <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                     <StatCard title="Aprobadas" value={stats.aprobadas} colorClass="text-green-600" />
                     <StatCard title="Cursando" value={stats.cursando} colorClass="text-blue-600" />
                     <StatCard title="Restantes" value={stats.restantes} colorClass="text-gray-600" />
