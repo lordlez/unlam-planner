@@ -46,14 +46,14 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, onRegister, error }) => {
                         <p className="mt-2 text-sm text-gray-500">Mínimo 6 caracteres.</p>
                     </div>
                     <div>
-                        <button type="submit" className="flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <button type="submit" className="flex justify-center w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer">
                             {isRegisterView ? 'Registrarme' : 'Ingresar'}
                         </button>
                     </div>
                 </form>
 
                 <div className="text-sm text-center">
-                    <button onClick={() => setIsRegisterView(!isRegisterView)} className="font-medium text-indigo-600 hover:text-indigo-500">
+                    <button onClick={() => setIsRegisterView(!isRegisterView)} className="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">
                         {isRegisterView ? '¿Ya tienes una cuenta? Inicia sesión' : '¿No tienes una cuenta? Regístrate'}
                     </button>
                 </div>
