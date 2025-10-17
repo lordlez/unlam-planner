@@ -30,10 +30,10 @@ const AppView: React.FC<AppViewProps> = ({ user, userName, carrera, onLogout, on
         setIsResetModalOpen(false);
     };
 
-    const stats = useMemo(() => {
+    const isMateriaValida = useMemo(() => {
         const materiasMap = new Map(carrera.materias.map(m => [m.id, m]));
-
-        const isMateriaValida = (materiaId: string, progress: UserProgress, visited = new Set<string>()): boolean => {
+        
+        return (materiaId: string, progress: UserProgress, visited = new Set<string>()): boolean => {
             if (visited.has(materiaId)) return true; 
             visited.add(materiaId);
 
@@ -51,7 +51,10 @@ const AppView: React.FC<AppViewProps> = ({ user, userName, carrera, onLogout, on
                 return correlativaAprobada && isMateriaValida(idCorrelativa, progress, visited);
             });
         };
-        
+    }, [carrera.materias]);
+
+
+    const stats = useMemo(() => {
         let aprobadas = 0;
         let cursando = 0;
         
@@ -69,7 +72,7 @@ const AppView: React.FC<AppViewProps> = ({ user, userName, carrera, onLogout, on
         const avance = totalMaterias > 0 ? Math.round((aprobadas / totalMaterias) * 100) : 0;
         
         return { aprobadas, cursando, restantes, avance };
-    }, [userProgress, carrera.materias]);
+    }, [userProgress, carrera.materias, isMateriaValida]);
 
     const materiasPorAno = useMemo(() => {
         return carrera.materias.reduce((acc, materia) => {
@@ -77,6 +80,32 @@ const AppView: React.FC<AppViewProps> = ({ user, userName, carrera, onLogout, on
             return acc;
         }, {} as { [key: number]: Materia[] });
     }, [carrera.materias]);
+
+    const statsPorAno = useMemo(() => {
+        const stats: { [key: number]: { aprobadas: number; total: number; porcentaje: number } } = {};
+
+        for (const anoString in materiasPorAno) {
+            const ano = parseInt(anoString);
+            const materiasDelAno = materiasPorAno[ano];
+            const totalDelAno = materiasDelAno.length;
+            let aprobadasDelAno = 0;
+
+            materiasDelAno.forEach(materia => {
+                const estado = userProgress[materia.id];
+                if ((estado === estados.APROBADA_FINAL || estado === estados.APROBADA_CURSADA) && isMateriaValida(materia.id, userProgress)) {
+                    aprobadasDelAno++;
+                }
+            });
+
+            stats[ano] = {
+                aprobadas: aprobadasDelAno,
+                total: totalDelAno,
+                porcentaje: totalDelAno > 0 ? Math.round((aprobadasDelAno / totalDelAno) * 100) : 0
+            };
+        }
+        return stats;
+    }, [userProgress, materiasPorAno, isMateriaValida]);
+
 
     const checkCorrelatividades = (materia: Materia): boolean => {
         if (!materia.correlativas || materia.correlativas.length === 0) return true;
@@ -122,11 +151,24 @@ const AppView: React.FC<AppViewProps> = ({ user, userName, carrera, onLogout, on
                     <StatCard title="Avance" value={`${stats.avance}%`} colorClass="text-indigo-600" />
                 </section>
                 <section className="space-y-8">
-                    {Object.keys(materiasPorAno).sort((a,b) => parseInt(a) - parseInt(b)).map(ano => (
+                    {Object.keys(materiasPorAno).sort((a,b) => parseInt(a) - parseInt(b)).map(anoString => {
+                        const ano = parseInt(anoString);
+                        return (
                         <div key={ano}>
-                            <h2 className="text-2xl font-bold border-b-2 border-indigo-200 pb-2 mb-4">{ano}° Año</h2>
+                            <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-4 border-b-2 border-indigo-200 pb-2 mb-4">
+                                <h2 className="text-2xl font-bold whitespace-nowrap mb-2 sm:mb-0">{ano}° Año</h2>
+                                {statsPorAno[ano] && (
+                                    <div className="flex items-center space-x-2 w-full sm:w-96">
+                                        <span className="text-sm font-semibold text-gray-600 whitespace-nowrap">{statsPorAno[ano].aprobadas} / {statsPorAno[ano].total}</span>
+                                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                            <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${statsPorAno[ano].porcentaje}%` }}></div>
+                                        </div>
+                                        <span className="text-sm font-bold text-green-600 w-12 text-right">{statsPorAno[ano].porcentaje}%</span>
+                                    </div>
+                                )}
+                            </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {materiasPorAno[parseInt(ano)].map(materia => (
+                                {materiasPorAno[ano].map(materia => (
                                     <MateriaCard
                                         key={materia.id}
                                         materia={materia}
@@ -138,7 +180,7 @@ const AppView: React.FC<AppViewProps> = ({ user, userName, carrera, onLogout, on
                                 ))}
                             </div>
                         </div>
-                    ))}
+                    )})}
                 </section>
             </main>
 
