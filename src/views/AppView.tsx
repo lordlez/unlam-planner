@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
+// CORRECCIÓN: Se añaden las extensiones .ts y .tsx a las rutas de importación
 import type { User, UserProgress, Carrera, Materia } from '../types/index.ts';
 import { estados } from '../types';
 import StatCard from '../components/StatCard.tsx';
 import MateriaCard from '../components/MateriaCard.tsx';
+
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -10,10 +12,9 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 
-
 interface AppViewProps {
     user: User;
-    userName: string; 
+    userName: string;
     carrera: Carrera;
     onLogout: () => void;
     onReset: () => void;
@@ -30,12 +31,32 @@ const AppView: React.FC<AppViewProps> = ({ user, userName, carrera, onLogout, on
     };
 
     const stats = useMemo(() => {
-        const totalMaterias = carrera.materias.length;
+        const materiasMap = new Map(carrera.materias.map(m => [m.id, m]));
+
+        const isMateriaValida = (materiaId: string, progress: UserProgress, visited = new Set<string>()): boolean => {
+            if (visited.has(materiaId)) return true; 
+            visited.add(materiaId);
+
+            const materia = materiasMap.get(materiaId);
+            if (!materia) return false; 
+
+            if (!materia.correlativas || materia.correlativas.length === 0) {
+                return true;
+            }
+
+            return materia.correlativas.every(idCorrelativa => {
+                const estadoCorrelativa = progress[idCorrelativa];
+                const correlativaAprobada = estadoCorrelativa === estados.APROBADA_CURSADA || estadoCorrelativa === estados.APROBADA_FINAL;
+                
+                return correlativaAprobada && isMateriaValida(idCorrelativa, progress, visited);
+            });
+        };
+        
         let aprobadas = 0;
         let cursando = 0;
         
-        Object.values(userProgress).forEach(estado => {
-            if (estado === estados.APROBADA_FINAL || estado === estados.APROBADA_CURSADA) {
+        Object.entries(userProgress).forEach(([materiaId, estado]) => {
+            if ((estado === estados.APROBADA_FINAL || estado === estados.APROBADA_CURSADA) && isMateriaValida(materiaId, userProgress)) {
                 aprobadas++;
             }
             if (estado === estados.CURSANDO) {
@@ -43,11 +64,12 @@ const AppView: React.FC<AppViewProps> = ({ user, userName, carrera, onLogout, on
             }
         });
 
+        const totalMaterias = carrera.materias.length;
         const restantes = totalMaterias - aprobadas;
         const avance = totalMaterias > 0 ? Math.round((aprobadas / totalMaterias) * 100) : 0;
         
         return { aprobadas, cursando, restantes, avance };
-    }, [userProgress, carrera.materias.length]);
+    }, [userProgress, carrera.materias]);
 
     const materiasPorAno = useMemo(() => {
         return carrera.materias.reduce((acc, materia) => {
@@ -64,17 +86,17 @@ const AppView: React.FC<AppViewProps> = ({ user, userName, carrera, onLogout, on
             return estadoCorrelativa === estados.APROBADA_CURSADA || estadoCorrelativa === estados.APROBADA_FINAL;
         });
     };
-
+    
     const checkPuedePromocionar = (materia: Materia): boolean => {
         if (!materia.correlativas || materia.correlativas.length === 0) {
-            return true; 
+            return true;
         }
         return materia.correlativas.every(idCorrelativa => {
             const estadoCorrelativa = userProgress[idCorrelativa] || estados.NO_CURSADA;
             return estadoCorrelativa !== estados.APROBADA_CURSADA; 
         });
     };
-    
+
     return (
         <div className="bg-gray-100 min-h-screen">
             <header className="bg-white shadow-md sticky top-0 z-10">
@@ -85,15 +107,15 @@ const AppView: React.FC<AppViewProps> = ({ user, userName, carrera, onLogout, on
                         </span>
                         <div className="flex items-center space-x-2">
                             <span className="text-sm text-gray-600 mr-2 hidden sm:block">{user.email}</span>
-                            <button onClick={() => setIsResetModalOpen(true)} className="px-3 py-2 text-sm font-medium text-red-600 bg-red-100 rounded-md hover:bg-red-200">Reiniciar</button>
-                            <button onClick={onLogout} className="px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">Salir</button>
+                            <button onClick={() => setIsResetModalOpen(true)} className="px-3 py-2 text-sm font-medium text-red-600 bg-red-100 rounded-md hover:bg-red-200 cursor-pointer">Reiniciar</button>
+                            <button onClick={onLogout} className="px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 cursor-pointer">Salir</button>
                         </div>
                     </div>
                 </nav>
             </header>
             
             <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-               <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                     <StatCard title="Aprobadas" value={stats.aprobadas} colorClass="text-green-600" />
                     <StatCard title="Cursando" value={stats.cursando} colorClass="text-blue-600" />
                     <StatCard title="Restantes" value={stats.restantes} colorClass="text-gray-600" />

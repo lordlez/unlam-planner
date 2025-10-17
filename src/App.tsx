@@ -5,14 +5,16 @@ import {
     onAuthStateChanged, 
     signOut, 
     setPersistence, 
-    browserLocalPersistence
+    browserLocalPersistence,
+    sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 
-import { auth, db } from './firebase/config.ts';
-import type { User, UserProgress, Carrera } from './types/index.ts';
-import AuthView from './views/AuthView.tsx';
-import AppView from './views/AppView.tsx';
+// CORRECCIÓN: Se quitan las extensiones de los archivos para que Vite los resuelva.
+import { auth, db } from './firebase/config';
+import type { User, UserProgress, Carrera } from './types';
+import AuthView from './views/AuthView';
+import AppView from './views/AppView';
 
 const carrera: Carrera = {
     id: 'ing-inf-2023',
@@ -114,12 +116,12 @@ export default function App() {
             if (docSnap.exists()) {
                 setUserName(docSnap.data().name || '');
             }
+            setLoading(false);
         });
 
         const progressDocRef = doc(db, `progress/${user.uid}/courses`, carrera.id);
         const unsubscribeProgress = onSnapshot(progressDocRef, (docSnap) => {
             setUserProgress(docSnap.exists() ? docSnap.data() : {});
-            setLoading(false);
         });
 
         return () => {
@@ -165,6 +167,25 @@ export default function App() {
         }
     };
 
+    const handlePasswordReset = async (email: string) => {
+        setError('');
+        try {
+            await sendPasswordResetEmail(auth, email);
+            alert("Se ha enviado un correo para restablecer tu contraseña. Revisa tu bandeja de entrada.");
+        } catch (err: unknown) {
+            if (typeof err === 'object' && err !== null && 'code' in err) {
+                const firebaseError = err as { code: string };
+                if (firebaseError.code === 'auth/user-not-found') {
+                    setError("El correo ingresado no está registrado.");
+                } else {
+                    setError("No se pudo enviar el correo. Inténtalo de nuevo más tarde.");
+                }
+            } else {
+                setError("Ocurrió un error desconocido.");
+            }
+        }
+    };
+
     const handleLogout = () => {
         signOut(auth);
     };
@@ -207,6 +228,7 @@ export default function App() {
         <AuthView 
             onLogin={handleLogin} 
             onRegister={handleRegister}
+            onPasswordReset={handlePasswordReset}
             error={error} 
         />
     );
